@@ -1,0 +1,87 @@
+<?php
+	session_start();
+	require_once('../../inc/config/constants.php');
+	require_once('../../inc/config/db.php');
+	
+	// Verificar si el usuario tiene acceso a esta página.
+	if (!isset($_SESSION['userID']) || $_SESSION['userID'] != 1) {
+		// Mostrar un mensaje de error en lugar de redirigir
+		echo '<div class="alert alert-danger">No tienes permisos para ver esta página.</div>';
+		exit;
+	}
+
+
+	
+	$uPrice = 0;
+	$qty = 0;
+	$totalPrice = 0;
+	
+	if(isset($_POST['startDate'])){
+		$startDate = htmlentities($_POST['startDate']);
+		$endDate = htmlentities($_POST['endDate']);
+		
+		$saleFilteredReportSql = 'SELECT * FROM sale WHERE saleDate BETWEEN :startDate AND :endDate';
+		$saleFilteredReportStatement = $conn->prepare($saleFilteredReportSql);
+		$saleFilteredReportStatement->execute(['startDate' => $startDate, 'endDate' => $endDate]);
+
+		$output = '<table id="saleFilteredReportsTable" class="table table-sm table-striped table-bordered table-hover" style="width:100%">
+					<thead>
+						<tr>
+						<th>ID de venta</th>
+						<th>Número de artículo</th>
+						<th>ID de cliente</th>
+						<th>Nombre del cliente</th>
+						<th>Nombre del elemento</th>
+						<th>Fecha de venta</th>
+						<th>% de descuento</th>
+						<th>Cantidad</th>
+						<th>Precio unitario</th>
+						<th>Precio total</th>
+						</tr>
+					</thead>
+					<tbody>';
+		
+		// Create table rows from the selected data
+		while($row = $saleFilteredReportStatement->fetch(PDO::FETCH_ASSOC)){
+			$uPrice = $row['unitPrice'];
+			$qty = $row['quantity'];
+			$discount = $row['discount'];
+			$totalPrice = $uPrice * $qty * ((100 - $discount)/100);
+		
+			$output .= '<tr>' .
+							'<td>' . $row['saleID'] . '</td>' .
+							'<td>' . $row['itemNumber'] . '</td>' .
+							'<td>' . $row['customerID'] . '</td>' .
+							'<td>' . $row['customerName'] . '</td>' .
+							'<td>' . $row['itemName'] . '</td>' .
+							'<td>' . $row['saleDate'] . '</td>' .
+							'<td>' . $row['discount'] . '</td>' .
+							'<td>' . $row['quantity'] . '</td>' .
+							'<td>' . $row['unitPrice'] . '</td>' .
+							'<td>' . $totalPrice . '</td>' .
+						'</tr>';
+		}
+		
+		$saleFilteredReportStatement->closeCursor();
+		
+		$output .= '</tbody>
+						<tfoot>
+							<tr>
+								<th>Total</th>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th></th>
+							</tr>
+						</tfoot>
+					</table>';
+		echo $output;
+	}
+?>
+
+
